@@ -9,7 +9,7 @@ grade: stable
 
 apps:
     neuron-server:
-        command: neuron_tcp_server -p 502 --check-firmware
+        command: opt/neurontcp/neuron_tcp_server -p 502 --check-firmware
         daemon: simple
         plugs: [network, network-bind]
 
