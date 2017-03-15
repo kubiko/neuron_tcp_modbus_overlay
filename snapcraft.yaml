@@ -16,7 +16,6 @@ apps:
 parts:
     neuron:
         plugin: make
-        source: https://github.com/UniPiTechnology/neuron_tcp_modbus_overlay.git
-        source-subdir: neuron_tcp_server
+        source: neuron_tcp_server
         build-packages: [libmodbus-dev ]
 
