@@ -1,8 +1,8 @@
-name: unipi
-version: "0.0.1"
-summary: unipi stack 
+name: neuron
+version: "0.0.2"
+summary: neuron stack 
 description: |
-  unipi stack
+  neuron stack
 
 confinement: strict
 grade: stable
