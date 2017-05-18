@@ -12,7 +12,7 @@
 #define __armpty_h
 
 
-int armpty_open(arm_handle* arm, uint8_t uart);
+int armpty_open(arm_handle* arm, uint8_t uart, const char* dirname);
 int armpty_setuart(int masterfd, arm_handle* arm, uint8_t uart);
 int armpty_readpty(int masterfd, arm_handle* arm, uint8_t uart);
 int armpty_readuart(arm_handle* arm, int do_idle);

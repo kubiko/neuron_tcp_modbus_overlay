@@ -9,7 +9,7 @@ grade: stable
 
 apps:
     neuron-server:
-        command: opt/neurontcp/neuron_tcp_server -p 502 --check-firmware --fwdir $SNAP/opt/fw
+        command: opt/neurontcp/neuron_tcp_server -p 502 --check-firmware --fwdir $SNAP/opt/fw -w $SNAP_DATA/extcomm
         daemon: simple
         plugs: [network, network-bind]
 

@@ -31,15 +31,16 @@
 #define IEXTPROC  EXTPROC
 
 
-int armpty_open(arm_handle* arm, uint8_t uart)
+int armpty_open(arm_handle* arm, uint8_t uart, const char* dirname)
 {
     static extcomm_counter = 0;
     int masterfd;
     int slavefd;
     uint8_t circuit = arm->index;
     char slavename[256];
-    const char dirname[] = "/dev/extcomm";
+    // const char dirname[] = "/dev/extcomm";
     char tmp[265];
+    char perrormsg[265];
 
     arm->uart_q[uart].masterpty = -1;
     int n = openpty(&masterfd, &slavefd, slavename, NULL, NULL);
@@ -50,15 +51,18 @@ int armpty_open(arm_handle* arm, uint8_t uart)
     if (arm_verbose) printf("Board%d PTY%d %s\n", arm->index, uart, slavename);
 
     if ((mkdir(dirname, 0750) < 0) && (errno != EEXIST)) {
-        perror("Error creating dir /dev/extcomm");
+        sprintf(perrormsg,"Error creating dir %s", dirname);
+        perror(perrormsg);
         close(masterfd);
-        return -1; 
+        return -1;
     }
     if (extcomm_counter == 0) {
-        system("rm -rf /dev/extcomm/0");
         sprintf(tmp, "%s/0", dirname);
+        sprintf(perrormsg,"rm -rf %s", tmp);
+        system(perrormsg);
         if ((mkdir(tmp, 0750) < 0)&& (errno != EEXIST)) {
-            perror("Error creating dir /dev/extcomm/0");
+            sprintf(perrormsg,"Error creating dir %s/0", dirname);
+            perror(perrormsg);
             close(masterfd);
             return -1;
         }
@@ -66,7 +70,8 @@ int armpty_open(arm_handle* arm, uint8_t uart)
     sprintf(tmp, "%s/0/%d", dirname, extcomm_counter);
     n = symlink(slavename, tmp);
     if (n < 0) {
-        perror("Error creating symlink /dev/extcomm/x/x");
+        sprintf(perrormsg,"Error creating symlink %s/x/x", dirname);
+        perror(perrormsg);
         close(masterfd);
         return -1;
     }
@@ -74,7 +79,8 @@ int armpty_open(arm_handle* arm, uint8_t uart)
 
     sprintf(tmp, "%s/%d", dirname, circuit+1);
     if ((mkdir(tmp, 0750) < 0)&& (errno != EEXIST)) {
-        perror("Error creating dir /dev/extcomm/x");
+        sprintf(perrormsg,"Error creating dir %s/x", dirname);
+        perror(perrormsg);
         close(masterfd);
         return -1;
     }
@@ -82,7 +88,8 @@ int armpty_open(arm_handle* arm, uint8_t uart)
     unlink(tmp);
     n = symlink(slavename, tmp);
     if (n < 0) {
-        perror("Error creating symlink /dev/extcomm/x/x");
+        sprintf(perrormsg,"Error creating symlink %s/x/x", dirname);
+        perror(perrormsg);
         close(masterfd);
         return -1;
     }
@@ -102,7 +109,7 @@ int armpty_open(arm_handle* arm, uint8_t uart)
         close(masterfd);
         return -1;
     }
-    //raw mode for data processing 
+    //raw mode for data processing
     cfmakeraw(&tc);
     tc.c_lflag |= IEXTPROC;
 
@@ -156,7 +163,7 @@ int armpty_setuart(int masterfd, arm_handle* arm, uint8_t uart)
     if (n < 0) {
         perror("Error tcgetattr ");
         return -1;
-    }    
+    }
     tc.c_lflag |= IEXTPROC;
 
     conf[0] = tc.c_cflag & CBAUD;
@@ -207,13 +214,13 @@ int armpty_readuart(arm_handle* arm, int do_idle)
         if (n > wanted) n = wanted;
         n = read_string(arm, uart, buffer + nr, n);
         if (n < 0) break;
-        wanted -= n; 
+        wanted -= n;
         nr += n;
         if (wanted == 0) {
             if ((arm->uart_q[uart].masterpty != -1)) {
                 //dpr(buffer, nr, "RD: ");
                 int nw = write(arm->uart_q[uart].masterpty, buffer, nr);
-                if (nr != nw ) 
+                if (nr != nw )
                     { if (arm_verbose) printf("1 wr: nr=%d nw=%d\n", nr,nw); }
             }
             nr = 0;

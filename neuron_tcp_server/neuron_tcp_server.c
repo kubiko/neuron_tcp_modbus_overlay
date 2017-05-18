@@ -1,7 +1,7 @@
 /*
  * SPI communication with UniPi Neuron family controllers
  *
- * using epoll pattern 
+ * using epoll pattern
  *
  * Copyright (c) 2016  Faster CZ, ondra@faster.cz
  *
@@ -52,6 +52,7 @@ char* spi_devices[MAX_ARMS] = {"/dev/spidev0.1","/dev/spidev0.3","/dev/spidev0.2
 int spi_speed[MAX_ARMS] = {12000000,12000000,12000000};
 char* gpio_int[MAX_ARMS] = { "27", "23", "22" };
 char* firmwaredir = "/opt/fw";
+char* extcommdir = "/dev/extcomm";
 int do_check_fw = 0;
 
 #define MAXEVENTS 64
@@ -88,10 +89,10 @@ typedef struct {
         struct {
           mb_buffer_t* rd_buffer;
           mb_buffer_t* wr_buffer;
-        };    
+        };
         arm_handle* arm;
     };
-    
+
 } mb_event_data_t;
 
 
@@ -102,7 +103,7 @@ void pool_allocate(void)
     mb_buffer_t* prev;
     int n = MB_BUFFER_COUNT;
     b_stack = calloc(1, sizeof(mb_buffer_t));
-    b_stack->id = 1; 
+    b_stack->id = 1;
     while(n-- > 0) {
         prev = b_stack;
         b_stack = calloc(1, sizeof(mb_buffer_t));
@@ -181,13 +182,13 @@ int nb_send(int fd, mb_buffer_t* buffer)
                 return 1;  // buffer sent partially
 			}
             perror ("send");
-			return -1;     // error fatal 
+			return -1;     // error fatal
 		}
 		buffer->sendindex = buffer->sendindex + n;
 		wanted = wanted - n;
 	}
 
-    return 0; 
+    return 0;
 }
 
 
@@ -238,7 +239,7 @@ int parse_buffer(mb_event_data_t* event_data)
                 mb_buffer_t* last = event_data->wr_buffer;
                 while (last->next != NULL) last = last->next;
                 last->next = buffer;
- 
+
            } else {                             /* try to send data */
                 int rc = nb_send(event_data->fd, buffer);
                 if (rc < 0) {                   /* Fatal error */
@@ -282,16 +283,17 @@ static struct option long_options[] = {
   {"bauds",required_argument, 0, 'b'},
   {"fwdir", required_argument, 0, 'f'},
   {"check-firmware", no_argument,0, 'c'},
+  {"extcomm-work-dir", required_argument,0, 'w'},
   {0, 0, 0, 0}
 };
 
 static void print_usage(const char *progname)
 {
-  printf("usage: %s [-v[v]] [-d] [-l listen_address] [-p port] [-s dev1[,dev2[,dev3]]] [-i gpio1[,gpio2[,gpio3]]] [-b [baud1,..] [-f firmwaredir] [-c]\n", progname);
+  printf("usage: %s [-v[v]] [-d] [-l listen_address] [-p port] [-s dev1[,dev2[,dev3]]] [-i gpio1[,gpio2[,gpio3]]] [-b [baud1,..] [-f firmwaredir] [-c][-w extcomm-work-dir]\n", progname);
   int i;
   for (i=0; ; i++) {
       if (long_options[i].name == NULL)  return;
-      printf("  --%s%s\t %s\n", long_options[i].name, 
+      printf("  --%s%s\t %s\n", long_options[i].name,
                                 long_options[i].has_arg?"=...":"",
                                 "");
   }
@@ -365,7 +367,7 @@ int main(int argc, char *argv[])
     int c;
     while (1) {
        int option_index = 0;
-       c = getopt_long(argc, argv, "vdcl:p:s:i:f:", long_options, &option_index);
+       c = getopt_long(argc, argv, "vdcl:p:s:i:f:w:", long_options, &option_index);
        if (c == -1) {
            if (optind < argc)  {
                printf ("non-option ARGV-element: %s\n", argv[optind]);
@@ -415,6 +417,9 @@ int main(int argc, char *argv[])
            break;
        case 'c':
            do_check_fw = 1;
+           break;
+       case 'w':
+           extcommdir = strdup(optarg);
            break;
        default:
            print_usage(argv[0]);
@@ -487,7 +492,7 @@ int main(int argc, char *argv[])
         int pi, pty;
         //printf ("uarts = %d\n", arm->uart_count);
         for (pi=0; pi < arm->uart_count; pi++) {
-            pty = armpty_open(arm, pi);
+            pty = armpty_open(arm, pi, extcommdir);
             if (pty >= 0) {
                 event_data = calloc(1, sizeof(mb_event_data_t));
                 event_data->fd = pty;
@@ -650,7 +655,7 @@ int main(int argc, char *argv[])
 
                 /* We have data on the fd waiting to be read.
                    We must read whatever data is available completely,
-                   as we are running in edge-triggered mode and 
+                   as we are running in edge-triggered mode and
                    won't get a notification again for the same data. */
                 while (1) {
                     ssize_t count;
@@ -688,11 +693,11 @@ int main(int argc, char *argv[])
                     if (rc == -1) {
                         close_event(event_data);
                         break;
-                    } 
+                    }
                     if (rc == RES_WRITE_QUEUE) {
                         event.events =  EPOLLIN | EPOLLOUT | EPOLLET;
                         event.data.ptr =  event_data;
-                        if (epoll_ctl (efd, EPOLL_CTL_MOD, event_data->fd, &event) == -1) 
+                        if (epoll_ctl (efd, EPOLL_CTL_MOD, event_data->fd, &event) == -1)
                             perror ("epoll_ctl");
                     }
 
