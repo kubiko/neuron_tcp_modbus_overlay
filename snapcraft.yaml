@@ -1,6 +1,6 @@
 name: neuron
 version: "0.0.2"
-summary: neuron stack 
+summary: neuron stack
 description: |
   neuron stack
 
@@ -9,7 +9,7 @@ grade: stable
 
 apps:
     neuron-server:
-        command: opt/neurontcp/neuron_tcp_server -p 502 --check-firmware
+        command: opt/neurontcp/neuron_tcp_server -p 502 --check-firmware --fwdir $SNAP/opt/fw
         daemon: simple
         plugs: [network, network-bind]
 
@@ -19,3 +19,9 @@ parts:
         source: neuron_tcp_server
         build-packages: [libmodbus-dev ]
 
+    # download firmware file
+    # firmware:
+    #     plugin: dump
+    #     source: https://files.unipi.technology/s/public?path=%2FProducts%2FNeuron%2FFirmware%2Flatest
+    #     organize:
+    #         : opt/fw
