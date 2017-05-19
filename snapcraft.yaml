@@ -7,6 +7,12 @@ description: |
 confinement: strict
 grade: stable
 
+slots:
+  extcomm-slot:
+    interface: content
+    write:
+      - $SNAP_DATA/extcomm
+
 apps:
     neuron-server:
         command: opt/neurontcp/neuron_tcp_server -p 502 --check-firmware --fwdir $SNAP/opt/fw -w $SNAP_DATA/extcomm
